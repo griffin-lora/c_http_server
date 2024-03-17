@@ -9,4 +9,11 @@ typedef struct {
     size_t num_chars;
 } string_t;
 
-string_t tokenize_string(string_t str, const char* delim);
+string_t get_next_token(string_t token, const char* delim);
+
+static inline string_t get_first_token(const char* str, const char* delim) {
+    return get_next_token((string_t) {
+        .chars = str,
+        .num_chars = 0
+    }, delim);
+}

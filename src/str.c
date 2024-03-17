@@ -1,15 +1,15 @@
 #include "str.h"
 #include <string.h>
 
-string_t tokenize_string(string_t str, const char* delim) {
-    str.chars += str.num_chars;
-    str.chars += strspn(str.chars, delim);
+string_t get_next_token(string_t token, const char* delim) {
+    token.chars += token.num_chars;
+    token.chars += strspn(token.chars, delim);
  
-    if (*str.chars == '\0') {
+    if (*token.chars == '\0') {
         return (string_t) { .ptr = NULL } ;
     }
  
-    str.num_chars = strcspn(str.chars, delim);
+    token.num_chars = strcspn(token.chars, delim);
  
-    return str;
+    return token;
 }
