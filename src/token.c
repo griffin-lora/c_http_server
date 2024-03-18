@@ -5,8 +5,8 @@
 static size_t get_next_start_index(const lexer_info_t* info, size_t token_index) {
     size_t delim_index = 0;
 
-    for (size_t i = token_index; i < info->num_chars; i++) {
-        if (info->str[i] != info->delim[delim_index]) {
+    for (size_t i = token_index; i < info->str.num_chars; i++) {
+        if (info->str.chars[i] != info->delim[delim_index]) {
             return i;
         }
         delim_index++;
@@ -16,15 +16,15 @@ static size_t get_next_start_index(const lexer_info_t* info, size_t token_index)
     }
     // We should never ever reach here so print an error for debug
     // printf("WARN: Reached end of get_next_start_index, probably should close this client socket\n");
-    return info->num_chars;
+    return info->str.num_chars;
 }
 
 static size_t get_num_token_chars(const lexer_info_t* info, size_t token_index) {
     size_t num_token_chars = 0;
     size_t delim_index = 0;
 
-    for (size_t i = token_index; i < info->num_chars; i++) {
-        if (info->str[i] != info->delim[delim_index]) { 
+    for (size_t i = token_index; i < info->str.num_chars; i++) {
+        if (info->str.chars[i] != info->delim[delim_index]) { 
             delim_index = 0;
             continue;
         }
@@ -36,7 +36,7 @@ static size_t get_num_token_chars(const lexer_info_t* info, size_t token_index) 
             return num_token_chars;
         }
     }
-    return info->num_chars - token_index;
+    return info->str.num_chars - token_index;
 }
 
 lexer_t init_lexer(const lexer_info_t* info) {
@@ -48,7 +48,7 @@ lexer_t init_lexer(const lexer_info_t* info) {
 }
 
 bool check_lexer(const lexer_info_t* info, const lexer_t* lexer) {
-    return lexer->index < info->num_chars;
+    return lexer->index < info->str.num_chars;
 }
 
 lexer_t next_lexer(const lexer_info_t* info, const lexer_t* lexer) {

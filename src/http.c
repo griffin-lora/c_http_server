@@ -5,9 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-static result_t parse_request_first_line(size_t num_line_chars, const char line[], http_request_type_t* type, string_t* path) {
+static result_t parse_request_first_line(string_t line, http_request_type_t* type, string_t* path) {
     lexer_info_t lexer_info = {
-        .num_chars = num_line_chars,
         .str = line,
         .delim = " "
     };
@@ -18,7 +17,7 @@ static result_t parse_request_first_line(size_t num_line_chars, const char line[
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token = line + lexer.index;
+        const char* token = line.chars + lexer.index;
         printf("Line token: %.*s\n", (int) lexer.num_chars, token);
         switch (i) {
             case 0:
@@ -47,16 +46,15 @@ static result_t parse_request_first_line(size_t num_line_chars, const char line[
     return result_failure;
 }
 
-static result_t parse_header(size_t num_line_chars, const char line[], string_t* key, string_t* value) {
+static result_t parse_header(string_t line, string_t* key, string_t* value) {
     lexer_info_t lexer_info = {
-        .num_chars = num_line_chars,
         .str = line,
         .delim = ": "
     };
     
     lexer_t lexer = init_lexer(&lexer_info);
     {
-        const char* token = line + lexer.index;
+        const char* token = line.chars + lexer.index;
         printf("Key: %.*s\n", (int) lexer.num_chars, token);
         *key = (string_t) {
             .num_chars = lexer.num_chars,
@@ -70,10 +68,10 @@ static result_t parse_header(size_t num_line_chars, const char line[], string_t*
     lexer = next_lexer(&lexer_info, &lexer); 
 
     {
-        const char* token = line + lexer.index;
-        printf("Value: %.*s\n", (int) (num_line_chars - lexer.index), token);
+        const char* token = line.chars + lexer.index;
+        printf("Value: %.*s\n", (int) (line.num_chars - lexer.index), token);
         *value = (string_t) {
-            .num_chars = num_line_chars - lexer.index,
+            .num_chars = line.num_chars - lexer.index,
             .chars = token
         };
     } 
@@ -82,12 +80,11 @@ static result_t parse_header(size_t num_line_chars, const char line[], string_t*
 
 }
 
-result_t parse_http_request_message(const char* request_msg, http_request_t* request) {
+result_t parse_http_request_message(string_t request_msg, http_request_t* request) {
     http_request_type_t type;
     string_t path;
 
     lexer_info_t lexer_info = {
-        .num_chars = strlen(request_msg),
         .str = request_msg,
         .delim = "\r\n"
     };
@@ -100,12 +97,15 @@ result_t parse_http_request_message(const char* request_msg, http_request_t* req
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token = request_msg + lexer.index;
-        printf("Token: %.*s\n", (int) lexer.num_chars, token); 
+        const char* token_chars = request_msg.chars + lexer.index;
+        printf("Token: %.*s\n", (int) lexer.num_chars, token_chars); 
         if (i > 0) {
             continue;
         }
-        if (parse_request_first_line(lexer.num_chars, token, &type, &path) != result_success) {
+        if (parse_request_first_line((string_t) {
+            .num_chars = lexer.num_chars,
+            .chars = token_chars
+        }, &type, &path) != result_success) {
             return result_failure;
         }
         header_lexer = next_lexer(&lexer_info, &lexer);
@@ -125,8 +125,11 @@ result_t parse_http_request_message(const char* request_msg, http_request_t* req
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token = request_msg + lexer.index;  
-        if (parse_header(lexer.num_chars, token, &headers_key[i], &headers_value[i]) != result_success) {
+        const char* token_chars = request_msg.chars + lexer.index;  
+        if (parse_header((string_t) {
+            .num_chars = lexer.num_chars,
+            .chars = token_chars
+        }, &headers_key[i], &headers_value[i]) != result_success) {
             return result_failure;
         }
     }
@@ -140,4 +143,10 @@ result_t parse_http_request_message(const char* request_msg, http_request_t* req
     };
 
     return result_success;
+}
+
+void create_http_response_message(const http_response_t* response, string_t* response_msg) {
+    (void)response;
+    (void)response_msg;
+    // size_t num_response_msg_chars = 0;
 }

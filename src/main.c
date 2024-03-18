@@ -47,27 +47,42 @@ int main() {
         printf("Error getting client sock: %s\n", strerror(errno));
         return 1;
     }
-    
-    char request_msg[MAX_NUM_REQUEST_MSG_CHARS + 1];
-    // memset(request_msg, 0, MAX_NUM_REQUEST_MSG_CHARS + 1);
-    
-    // TODO: While loop read in entire request
-    ssize_t num_request_msg_chars = recv(client_sock, request_msg, MAX_NUM_REQUEST_MSG_CHARS, 0);
+
+    char request_msg_chars[MAX_NUM_REQUEST_MSG_CHARS + 1];
+
+    ssize_t num_request_msg_chars = recv(client_sock, request_msg_chars, MAX_NUM_REQUEST_MSG_CHARS, 0);
     if (num_request_msg_chars == -1) {
         printf("Error receiving data: %s\n", strerror(errno));
         return 1;
     }
 
-    request_msg[num_request_msg_chars] = '\0';
+    string_t request_msg = {
+        .chars = request_msg_chars,
+        .num_chars = (size_t)num_request_msg_chars
+    };
 
-    printf("Client request:\n%s\n", request_msg);
+    printf("Client request: %.*s\n", (int) request_msg.num_chars, request_msg.chars); 
 
     http_request_t request;
     if (parse_http_request_message(request_msg, &request) != result_success) {
         printf("Error parsing request\n");
     }
 
-    printf("%d\n", request.type);
+    printf("Request type: %d\n", request.type);
+    for (size_t i = 0; i < request.num_headers; i++) {
+        printf("Key: %.*s, Value: %.*s\n",
+            (int) request.headers_key[i].num_chars,
+            request.headers_key[i].chars,
+            (int) request.headers_value[i].num_chars,
+            request.headers_value[i].chars
+        );
+    }
+
+    http_response_t response;
+    string_t response_msg;
+    create_http_response_message(&response, &response_msg);
+
+    send(client_sock, response_msg.chars, response_msg.num_chars, 0);
     
     close(client_sock);
     close(listen_sock);

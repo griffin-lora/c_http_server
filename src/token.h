@@ -1,13 +1,13 @@
 #pragma once
+#include "types.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 typedef struct {
-    const size_t num_chars;
-    const char* const str; 
+    string_t str;
     // Must be null-terminated st strlen(delim) >= 1
-    const char* const delim;
+    const char* delim;
 } lexer_info_t;
 
 typedef struct {
