@@ -19,7 +19,7 @@ static result_t parse_request_first_line(size_t num_line_chars, const char line[
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
         const char* token = line + lexer.index;
-        printf("Token: %.*s\n", (int) lexer.num_chars, token);
+        printf("Line token: %.*s\n", (int) lexer.num_chars, token);
         switch (i) {
             case 0:
                 // TODO: Implement correctly
@@ -33,7 +33,7 @@ static result_t parse_request_first_line(size_t num_line_chars, const char line[
                 };
                 break;
             case 2:
-                if (strncmp(token, "HTTP/1.1", lexer.num_chars) == 0) {
+                if (strncmp(token, "HTTP/1.1", lexer.num_chars) == 0) { 
                     return result_success;
                 } else {
                     return result_failure;
@@ -62,9 +62,8 @@ result_t parse_http_request_message(const char* request_msg, http_request_t* req
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
         const char* token = request_msg + lexer.index;
-        printf("Lexer: %lu, %lu\n", lexer.num_chars, lexer.index);
         printf("Token: %.*s\n", (int) lexer.num_chars, token); 
-        if (i == (size_t)-1) {
+        if (i == 0) {
             if (parse_request_first_line(lexer.num_chars, token, &type, &path) != result_success) {
                 return result_failure;
             }
