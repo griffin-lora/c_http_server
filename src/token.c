@@ -16,7 +16,7 @@ static size_t get_next_start_index(const lexer_info_t* info, size_t token_index)
     }
     // We should never ever reach here so print an error for debug
     // printf("WARN: Reached end of get_next_start_index, probably should close this client socket\n");
-    // return info->num_chars;
+    return info->num_chars;
 }
 
 static size_t get_num_token_chars(const lexer_info_t* info, size_t token_index) {
