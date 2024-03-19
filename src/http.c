@@ -149,26 +149,62 @@ static const char* get_connection_type_string(http_connection_type_t type) {
 }
 
 void create_http_response_message(const http_response_t* response, string_t* response_msg) {
-    #define FORMAT_ARGS \
+    #define FORMAT_BASE_STRING_PREFIX \
         "HTTP/1.1 %s\r\n" \
         "Content-Length: %d\r\n" \
         "Content-Type: %s\r\n" \
-        "Connection: %s\r\n" \
-        "\r\n%.*s\r\n", \
+        "Connection: %s\r\n"
+
+    #define FORMAT_BASE_ARGS_PREFIX \
         get_response_type_string(response->type), \
         (int) response->content.num_chars, \
         get_content_type_string(response->header.content_type), \
-        get_connection_type_string(response->header.connection_type), \
+        get_connection_type_string(response->header.connection_type),
+
+    #define FORMAT_BASE_STRING_SUFFIX \
+        "\r\n%.*s\r\n", 
+
+    #define FORMAT_BASE_ARGS_SUFFIX \
         (int) response->content.num_chars, response->content.chars
 
-    size_t num_response_msg_chars = 0;
-    num_response_msg_chars += (size_t) snprintf(NULL, 0, FORMAT_ARGS);
+
+    #define CONNECTION_TYPE_CLOSE_FORMAT \
+        FORMAT_BASE_STRING_PREFIX \
+        FORMAT_BASE_STRING_SUFFIX \
+        FORMAT_BASE_ARGS_PREFIX \
+        FORMAT_BASE_ARGS_SUFFIX
+
+
+    #define CONNECTION_TYPE_KEEP_ALIVE_FORMAT \
+        FORMAT_BASE_STRING_PREFIX \
+        "Keep-Alive: timeout=%lu\r\n" \
+        FORMAT_BASE_STRING_SUFFIX \
+        FORMAT_BASE_ARGS_PREFIX \
+        response->header.keep_alive_timeout_seconds, \
+        FORMAT_BASE_ARGS_SUFFIX
+
+
+    
+    size_t num_response_msg_chars;
+    switch (response->header.connection_type == http_connection_type_close) {
+        case http_connection_type_close:
+            num_response_msg_chars = (size_t) snprintf(NULL, 0, CONNECTION_TYPE_CLOSE_FORMAT);
+            break;
+        case http_connection_type_keep_alive:
+            num_response_msg_chars = (size_t) snprintf(NULL, 0, CONNECTION_TYPE_KEEP_ALIVE_FORMAT);
+            break;
+    }
 
     char* response_msg_chars = malloc(num_response_msg_chars + 1);
     
-    sprintf(response_msg_chars, FORMAT_ARGS); 
-
-    #undef FORMAT_ARGS
+    switch (response->header.connection_type == http_connection_type_close) {
+        case http_connection_type_close:
+            sprintf(response_msg_chars, CONNECTION_TYPE_CLOSE_FORMAT);
+            break;
+        case http_connection_type_keep_alive:
+            sprintf(response_msg_chars, CONNECTION_TYPE_KEEP_ALIVE_FORMAT);
+            break;
+    }
 
     *response_msg = (string_t) {
         .num_chars = num_response_msg_chars,

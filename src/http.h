@@ -2,6 +2,7 @@
 #include "result.h"
 #include "types.h"
 #include <stddef.h>
+#include <sys/time.h>
 
 typedef enum {
     http_content_type_text_plain
@@ -32,6 +33,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 typedef struct {
     http_content_type_t content_type;
     http_connection_type_t connection_type;
+    time_t keep_alive_timeout_seconds;
 } http_response_header_t;
 
 typedef enum {
