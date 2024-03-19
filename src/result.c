@@ -22,5 +22,9 @@ void print_result_error(result_t result) {
         printf("Socket failure due to: %s\n", strerror(errno));
         return;
     }
+    if (result == result_thread_failure) {
+        printf("Thread failure due to: %s\n", strerror(errno));
+        return;
+    }
     printf("%s\n", get_result_string(result));
 }

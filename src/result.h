@@ -7,7 +7,8 @@ typedef enum {
     result_invalid_first_line,
     result_invalid_connection_type,
     result_invalid_header_line,
-    result_socket_failure
+    result_socket_failure,
+    result_thread_failure
 } result_t;
 
 void print_result_error(result_t result);
