@@ -58,3 +58,10 @@ lexer_t next_lexer(const lexer_info_t* info, const lexer_t* lexer) {
         .num_chars = get_num_token_chars(info, token_index)
     };
 }
+
+string_t get_token(const lexer_info_t* info, const lexer_t* lexer) {
+    return (string_t) {
+        .chars = info->str.chars + lexer->index,
+        .num_chars = lexer->num_chars
+    };
+}

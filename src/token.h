@@ -18,3 +18,5 @@ typedef struct {
 lexer_t init_lexer(const lexer_info_t* info);
 bool check_lexer(const lexer_info_t* info, const lexer_t* lexer);
 lexer_t next_lexer(const lexer_info_t* info, const lexer_t* lexer);
+
+string_t get_token(const lexer_info_t* info, const lexer_t* lexer);

@@ -17,10 +17,7 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        string_t token = {
-            .chars = line.chars + lexer.index,
-            .num_chars = lexer.num_chars
-        };
+        string_t token = get_token(&lexer_info, &lexer);
         switch (i) {
             case 0:
                 if (string_equal(token, MAKE_STRING("GET"))) {
@@ -63,22 +60,14 @@ static result_t parse_header_line(string_t line, http_request_header_t* header) 
     };
     
     lexer_t lexer = init_lexer(&lexer_info);
-    string_t key = {
-        .chars = line.chars + lexer.index,
-        .num_chars = lexer.num_chars
-    }; 
+    string_t key = get_token(&lexer_info, &lexer); 
 
     if (!check_lexer(&lexer_info, &lexer)) {
         return result_invalid_header_line;
     }
     lexer = next_lexer(&lexer_info, &lexer); 
+    string_t value = get_token(&lexer_info, &lexer);
 
-    string_t value = {
-        .chars = line.chars + lexer.index,
-        .num_chars = lexer.num_chars
-    };
-
-    // TODO: Implement actual header parsing
     if (string_lower_equal(key, MAKE_STRING("Connection"))) {
         result_t result = parse_connection_type(value, &header->connection_type);
         if (parse_connection_type(value, &header->connection_type) != result_success) { return result; }
@@ -103,15 +92,10 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token_chars = request_msg.chars + lexer.index;
-        printf("Token: %.*s\n", (int) lexer.num_chars, token_chars); 
         if (i > 0) {
             continue;
         }
-        result_t result = parse_request_first_line((string_t) {
-            .num_chars = lexer.num_chars,
-            .chars = token_chars
-        }, &type, &path);
+        result_t result = parse_request_first_line(get_token(&lexer_info, &lexer), &type, &path);
         if (result != result_success) { return result; }
         header_lexer = next_lexer(&lexer_info, &lexer);
     }
@@ -129,11 +113,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token_chars = request_msg.chars + lexer.index; 
-        result_t result = parse_header_line((string_t) {
-            .num_chars = lexer.num_chars,
-            .chars = token_chars
-        }, &header);
+        result_t result = parse_header_line(get_token(&lexer_info, &lexer), &header);
         if (result != result_success) { return result; }
     }
 
