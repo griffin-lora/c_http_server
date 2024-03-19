@@ -8,3 +8,5 @@ typedef struct {
     };
     size_t num_chars;
 } string_t;
+
+#define MAKE_STRING(CHARS) ((string_t) { .chars = (CHARS), .num_chars = strlen((CHARS)) })

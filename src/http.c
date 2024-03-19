@@ -146,7 +146,40 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 }
 
 void create_http_response_message(const http_response_t* response, string_t* response_msg) {
-    (void)response;
-    (void)response_msg;
-    // size_t num_response_msg_chars = 0;
+    size_t num_response_msg_chars = 0;
+    num_response_msg_chars += (size_t) snprintf(NULL, 0, "HTTP/1.1 %d OK\r\n\r\n%.*s\r\n", (int) response->type, (int) response->content.num_chars, response->content.chars);
+
+    for (size_t i = 0; i < response->num_headers; i++) {
+        const string_t* key = &response->headers_key[i];
+        const string_t* value = &response->headers_value[i];
+        num_response_msg_chars += (size_t) snprintf(NULL, 0, "%.*s: %.*s\r\n",
+            (int) key->num_chars,
+            key->chars,
+            (int) value->num_chars,
+            value->chars
+        );
+    }
+
+    char* response_msg_chars = malloc(num_response_msg_chars + 1);
+    
+    size_t index = 0;
+    index += (size_t) sprintf(&response_msg_chars[index], "HTTP/1.1 %d OK\r\n", (int) response->type);
+    
+    for (size_t i = 0; i < response->num_headers; i++) {
+        const string_t* key = &response->headers_key[i];
+        const string_t* value = &response->headers_value[i];
+        index += (size_t) sprintf(&response_msg_chars[index], "%.*s: %.*s\r\n",
+            (int) key->num_chars,
+            key->chars,
+            (int) value->num_chars,
+            value->chars
+        );
+    }
+
+    index += (size_t) sprintf(&response_msg_chars[index], "\r\n%.*s\r\n", (int) response->content.num_chars, response->content.chars);
+
+    *response_msg = (string_t) {
+        .num_chars = num_response_msg_chars,
+        .chars = response_msg_chars
+    };
 }

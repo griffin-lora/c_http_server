@@ -77,10 +77,40 @@ int main() {
             request.headers_value[i].chars
         );
     }
+    
+    string_t content = MAKE_STRING("Hello world!");
 
-    http_response_t response;
+    size_t num_content_length_str_chars = (size_t) snprintf(NULL, 0, "%lu", content.num_chars);
+    char* content_length_str_chars = malloc(num_content_length_str_chars + 1);
+
+    string_t content_length_str = {
+        .num_chars = num_content_length_str_chars,
+        .chars = content_length_str_chars
+    };
+
+    sprintf(content_length_str_chars, "%lu", content.num_chars);
+
+    string_t response_headers_key[2] = {
+        MAKE_STRING("Content-Length"),
+        MAKE_STRING("Content-Type")
+    };
+    string_t response_headers_value[2] = {
+        content_length_str,
+        MAKE_STRING("text/plain")
+    };
+
+    http_response_t response = {
+        .type = http_response_type_ok,
+        .content = content,
+        .num_headers = 2,
+        .headers_key = response_headers_key,
+        .headers_value = response_headers_value
+    };
+
     string_t response_msg;
     create_http_response_message(&response, &response_msg);
+
+    printf("Client response: %.*s\n", (int) response_msg.num_chars, response_msg.chars);
 
     send(client_sock, response_msg.chars, response_msg.num_chars, 0);
     

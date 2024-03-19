@@ -24,7 +24,7 @@ typedef enum {
 
 typedef struct {
     http_response_type_t type;
-    const char* content;
+    string_t content;
     size_t num_headers;
     const string_t* headers_key;
     const string_t* headers_value;
