@@ -17,27 +17,26 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token = line.chars + lexer.index;
-        printf("Line token: %.*s\n", (int) lexer.num_chars, token);
+        string_t token = {
+            .chars = line.chars + lexer.index,
+            .num_chars = lexer.num_chars
+        };
         switch (i) {
             case 0:
-                if (strncmp(token, "GET", lexer.num_chars) == 0) {
+                if (string_equal(token, MAKE_STRING("GET"))) {
                     *type = http_request_type_get;
                     break;
                 }
-                if (strncmp(token, "POST", lexer.num_chars) == 0) {
+                if (string_equal(token, MAKE_STRING("POST"))) {
                     *type = http_request_type_post;
                     break;
                 }
                 break;
             case 1:
-                *path = (string_t) {
-                    .num_chars = lexer.num_chars,
-                    .chars = token 
-                };
+                *path = token;
                 break;
             case 2:
-                return strncmp(token, "HTTP/1.1", lexer.num_chars) == 0 ? result_success : result_failure;
+                return string_equal(token, MAKE_STRING("HTTP/1.1")) ? result_success : result_failure;
             default:
                 return result_failure;
         } 
@@ -54,12 +53,11 @@ static result_t parse_header(string_t line, string_t* key, string_t* value) {
     
     lexer_t lexer = init_lexer(&lexer_info);
     {
-        const char* token = line.chars + lexer.index;
-        printf("Key: %.*s\n", (int) lexer.num_chars, token);
-        *key = (string_t) {
-            .num_chars = lexer.num_chars,
-            .chars = token
+        string_t token = {
+            .chars = line.chars + lexer.index,
+            .num_chars = lexer.num_chars
         };
+        *key = token;
     }
 
     if (!check_lexer(&lexer_info, &lexer)) {
@@ -68,12 +66,11 @@ static result_t parse_header(string_t line, string_t* key, string_t* value) {
     lexer = next_lexer(&lexer_info, &lexer); 
 
     {
-        const char* token = line.chars + lexer.index;
-        printf("Value: %.*s\n", (int) (line.num_chars - lexer.index), token);
-        *value = (string_t) {
-            .num_chars = line.num_chars - lexer.index,
-            .chars = token
+        string_t token = {
+            .chars = line.chars + lexer.index,
+            .num_chars = lexer.num_chars
         };
+        *value = token;
     } 
 
     return result_success;

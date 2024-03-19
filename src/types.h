@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct {
     union {
@@ -10,3 +11,5 @@ typedef struct {
 } string_t;
 
 #define MAKE_STRING(CHARS) ((string_t) { .chars = (CHARS), .num_chars = strlen((CHARS)) })
+
+bool string_equal(string_t a, string_t b);
