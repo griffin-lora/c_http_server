@@ -7,8 +7,13 @@ typedef enum {
     http_content_type_text_plain
 } http_content_type_t;
 
+typedef enum {
+    http_connection_type_keep_alive,
+    http_connection_type_close
+} http_connection_type_t;
+
 typedef struct {
-    int dummy;
+    http_connection_type_t connection_type;
 } http_request_header_t;
 
 typedef enum {
@@ -26,6 +31,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 
 typedef struct {
     http_content_type_t content_type;
+    http_connection_type_t connection_type;
 } http_response_header_t;
 
 typedef enum {

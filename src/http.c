@@ -45,6 +45,17 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
     return result_failure;
 }
 
+static result_t parse_connection_type(string_t str, http_connection_type_t* type) {
+    if (string_equal(str, MAKE_STRING("keep-alive"))) {
+        *type = http_connection_type_keep_alive;
+        return result_success;
+    } else if (string_equal(str, MAKE_STRING("close"))) {
+        *type = http_connection_type_close;
+        return result_success;
+    }
+    return result_failure;
+}
+
 static result_t parse_header_line(string_t line, http_request_header_t* header) {
     lexer_info_t lexer_info = {
         .str = line,
@@ -68,9 +79,9 @@ static result_t parse_header_line(string_t line, http_request_header_t* header) 
     };
 
     // TODO: Implement actual header parsing
-    (void)key;
-    (void)value;
-    (void)header;
+    if (string_lower_equal(key, MAKE_STRING("Connection"))) {
+        if (parse_connection_type(value, &header->connection_type) != result_success) { return result_failure; }
+    }
     return result_success;
 }
 
@@ -150,15 +161,25 @@ static const char* get_content_type_string(http_content_type_t type) {
     return NULL;
 }
 
+static const char* get_connection_type_string(http_connection_type_t type) {
+    switch (type) {
+        case http_connection_type_keep_alive: return "keep-alive";
+        case http_connection_type_close: return "close";
+    }
+    return NULL;
+}
+
 void create_http_response_message(const http_response_t* response, string_t* response_msg) {
     #define FORMAT_ARGS \
         "HTTP/1.1 %s\r\n" \
         "Content-Length: %d\r\n" \
         "Content-Type: %s\r\n" \
+        "Connection: %s\r\n" \
         "\r\n%.*s\r\n", \
         get_response_type_string(response->type), \
         (int) response->content.num_chars, \
         get_content_type_string(response->header.content_type), \
+        get_connection_type_string(response->header.connection_type), \
         (int) response->content.num_chars, response->content.chars
 
     size_t num_response_msg_chars = 0;

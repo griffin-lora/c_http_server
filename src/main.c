@@ -74,7 +74,8 @@ int main() {
         .type = http_response_type_ok,
         .content = MAKE_STRING("Hello world!"),
         .header = {
-            .content_type = http_content_type_text_plain
+            .content_type = http_content_type_text_plain,
+            .connection_type = request.header.connection_type
         }
     };
 
