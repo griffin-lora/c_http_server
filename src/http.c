@@ -45,36 +45,33 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
     return result_failure;
 }
 
-static result_t parse_header(string_t line, string_t* key, string_t* value) {
+static result_t parse_header_line(string_t line, http_request_header_t* header) {
     lexer_info_t lexer_info = {
         .str = line,
         .delim = ": "
     };
     
     lexer_t lexer = init_lexer(&lexer_info);
-    {
-        string_t token = {
-            .chars = line.chars + lexer.index,
-            .num_chars = lexer.num_chars
-        };
-        *key = token;
-    }
+    string_t key = {
+        .chars = line.chars + lexer.index,
+        .num_chars = lexer.num_chars
+    }; 
 
     if (!check_lexer(&lexer_info, &lexer)) {
         return result_failure;
     }
     lexer = next_lexer(&lexer_info, &lexer); 
 
-    {
-        string_t token = {
-            .chars = line.chars + lexer.index,
-            .num_chars = lexer.num_chars
-        };
-        *value = token;
-    } 
+    string_t value = {
+        .chars = line.chars + lexer.index,
+        .num_chars = lexer.num_chars
+    };
 
+    // TODO: Implement actual header parsing
+    (void)key;
+    (void)value;
+    (void)header;
     return result_success;
-
 }
 
 result_t parse_http_request_message(string_t request_msg, http_request_t* request) {
@@ -112,9 +109,8 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         return result_failure;
     }
 
-    size_t num_headers = i - 1;
-    string_t* headers_key = malloc(sizeof(string_t) * num_headers);
-    string_t* headers_value = malloc(sizeof(string_t) * num_headers);
+    http_request_header_t header;
+    memset(&header, 0, sizeof(header));
 
     i = 0;
     for (
@@ -123,10 +119,10 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
         const char* token_chars = request_msg.chars + lexer.index;  
-        if (parse_header((string_t) {
+        if (parse_header_line((string_t) {
             .num_chars = lexer.num_chars,
             .chars = token_chars
-        }, &headers_key[i], &headers_value[i]) != result_success) {
+        }, &header) != result_success) {
             return result_failure;
         }
     }
@@ -134,46 +130,45 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
     *request = (http_request_t) {
         .type = type,
         .path = path,
-        .num_headers = num_headers,
-        .headers_key = headers_key,
-        .headers_value = headers_value
+        .header = header
     };
 
     return result_success;
 }
 
-void create_http_response_message(const http_response_t* response, string_t* response_msg) {
-    size_t num_response_msg_chars = 0;
-    num_response_msg_chars += (size_t) snprintf(NULL, 0, "HTTP/1.1 %d OK\r\n\r\n%.*s\r\n", (int) response->type, (int) response->content.num_chars, response->content.chars);
-
-    for (size_t i = 0; i < response->num_headers; i++) {
-        const string_t* key = &response->headers_key[i];
-        const string_t* value = &response->headers_value[i];
-        num_response_msg_chars += (size_t) snprintf(NULL, 0, "%.*s: %.*s\r\n",
-            (int) key->num_chars,
-            key->chars,
-            (int) value->num_chars,
-            value->chars
-        );
+static const char* get_response_type_string(http_response_type_t type) {
+    switch (type) {
+        case http_response_type_ok: return "200 OK";
     }
+    return NULL;
+}
+
+static const char* get_content_type_string(http_content_type_t type) {
+    switch (type) {
+        case http_content_type_text_plain: return "text/plain";
+    }
+    return NULL;
+}
+
+void create_http_response_message(const http_response_t* response, string_t* response_msg) {
+    #define FORMAT_ARGS \
+        "HTTP/1.1 %s\r\n" \
+        "Content-Length: %d\r\n" \
+        "Content-Type: %s\r\n" \
+        "\r\n%.*s\r\n", \
+        get_response_type_string(response->type), \
+        (int) response->content.num_chars, \
+        get_content_type_string(response->header.content_type), \
+        (int) response->content.num_chars, response->content.chars
+
+    size_t num_response_msg_chars = 0;
+    num_response_msg_chars += (size_t) snprintf(NULL, 0, FORMAT_ARGS);
 
     char* response_msg_chars = malloc(num_response_msg_chars + 1);
     
-    size_t index = 0;
-    index += (size_t) sprintf(&response_msg_chars[index], "HTTP/1.1 %d OK\r\n", (int) response->type);
-    
-    for (size_t i = 0; i < response->num_headers; i++) {
-        const string_t* key = &response->headers_key[i];
-        const string_t* value = &response->headers_value[i];
-        index += (size_t) sprintf(&response_msg_chars[index], "%.*s: %.*s\r\n",
-            (int) key->num_chars,
-            key->chars,
-            (int) value->num_chars,
-            value->chars
-        );
-    }
+    sprintf(response_msg_chars, FORMAT_ARGS); 
 
-    index += (size_t) sprintf(&response_msg_chars[index], "\r\n%.*s\r\n", (int) response->content.num_chars, response->content.chars);
+    #undef FORMAT_ARGS
 
     *response_msg = (string_t) {
         .num_chars = num_response_msg_chars,
