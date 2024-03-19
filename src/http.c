@@ -36,13 +36,13 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
                 *path = token;
                 break;
             case 2:
-                return string_equal(token, MAKE_STRING("HTTP/1.1")) ? result_success : result_failure;
+                return string_equal(token, MAKE_STRING("HTTP/1.1")) ? result_success : result_invalid_first_line;
             default:
-                return result_failure;
+                return result_invalid_first_line;
         } 
     }
 
-    return result_failure;
+    return result_invalid_first_line;
 }
 
 static result_t parse_connection_type(string_t str, http_connection_type_t* type) {
@@ -53,7 +53,7 @@ static result_t parse_connection_type(string_t str, http_connection_type_t* type
         *type = http_connection_type_close;
         return result_success;
     }
-    return result_failure;
+    return result_invalid_connection_type;
 }
 
 static result_t parse_header_line(string_t line, http_request_header_t* header) {
@@ -69,7 +69,7 @@ static result_t parse_header_line(string_t line, http_request_header_t* header) 
     }; 
 
     if (!check_lexer(&lexer_info, &lexer)) {
-        return result_failure;
+        return result_invalid_header_line;
     }
     lexer = next_lexer(&lexer_info, &lexer); 
 
@@ -80,7 +80,8 @@ static result_t parse_header_line(string_t line, http_request_header_t* header) 
 
     // TODO: Implement actual header parsing
     if (string_lower_equal(key, MAKE_STRING("Connection"))) {
-        if (parse_connection_type(value, &header->connection_type) != result_success) { return result_failure; }
+        result_t result = parse_connection_type(value, &header->connection_type);
+        if (parse_connection_type(value, &header->connection_type) != result_success) { return result; }
     }
     return result_success;
 }
@@ -107,17 +108,16 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         if (i > 0) {
             continue;
         }
-        if (parse_request_first_line((string_t) {
+        result_t result = parse_request_first_line((string_t) {
             .num_chars = lexer.num_chars,
             .chars = token_chars
-        }, &type, &path) != result_success) {
-            return result_failure;
-        }
+        }, &type, &path);
+        if (result != result_success) { return result; }
         header_lexer = next_lexer(&lexer_info, &lexer);
     }
     
     if (i <= 1) {
-        return result_failure;
+        return result_invalid_http_request_message;
     }
 
     http_request_header_t header;
@@ -129,13 +129,12 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         check_lexer(&lexer_info, &lexer);
         lexer = next_lexer(&lexer_info, &lexer), i++
     ) {
-        const char* token_chars = request_msg.chars + lexer.index;  
-        if (parse_header_line((string_t) {
+        const char* token_chars = request_msg.chars + lexer.index; 
+        result_t result = parse_header_line((string_t) {
             .num_chars = lexer.num_chars,
             .chars = token_chars
-        }, &header) != result_success) {
-            return result_failure;
-        }
+        }, &header);
+        if (result != result_success) { return result; }
     }
 
     *request = (http_request_t) {
@@ -150,23 +149,23 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 static const char* get_response_type_string(http_response_type_t type) {
     switch (type) {
         case http_response_type_ok: return "200 OK";
+        default: return NULL;
     }
-    return NULL;
 }
 
 static const char* get_content_type_string(http_content_type_t type) {
     switch (type) {
         case http_content_type_text_plain: return "text/plain";
+        default: return NULL;
     }
-    return NULL;
 }
 
 static const char* get_connection_type_string(http_connection_type_t type) {
     switch (type) {
         case http_connection_type_keep_alive: return "keep-alive";
         case http_connection_type_close: return "close";
+        default: return NULL;
     }
-    return NULL;
 }
 
 void create_http_response_message(const http_response_t* response, string_t* response_msg) {
