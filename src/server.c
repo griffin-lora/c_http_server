@@ -50,9 +50,13 @@ static result_t handle_client_socket(socket_t sock) {
 
     printf("Client response: %.*s\n", (int) response_msg.num_chars, response_msg.chars);
 
-    send(sock, response_msg.chars, response_msg.num_chars, 0);
+    if (send(sock, response_msg.chars, response_msg.num_chars, 0) == -1) {
+        return result_socket_failure;
+    }
     
-    close(sock);
+    if (close(sock) == -1) {
+        return result_socket_failure;
+    }
 
     return result_success;
 }
@@ -67,6 +71,31 @@ static void* client_thread_main(void* v_arg) {
     socket_t sock = arg->socket;
     arg->result = handle_client_socket(sock);
     return NULL;
+}
+
+static result_t get_next_client(socket_t listen_sock) {
+    sockaddr_in_t client_addr;
+    socket_t client_sock = accept(listen_sock, (sockaddr_t*) &client_addr, (socklen_t[]) { sizeof(client_addr) });
+    if (client_sock == -1) {
+        return result_socket_failure;
+    }
+
+    client_thread_arg_t client_thread_arg = { .socket = client_sock };
+
+    pthread_t client_thread;
+    if (pthread_create(&client_thread, NULL, client_thread_main, &client_thread_arg) != 0) {
+        return result_thread_failure;
+    }
+
+    if (pthread_join(client_thread, NULL) != 0) {
+        return result_thread_failure;
+    }
+
+    if (client_thread_arg.result != result_success) {
+        return client_thread_arg.result;
+    }
+
+    return result_success;
 }
 
 result_t listen_for_clients(uint16_t port) {
@@ -86,25 +115,16 @@ result_t listen_for_clients(uint16_t port) {
     if (listen(listen_sock, NUM_CONNECTIONS) == -1) {
         return result_socket_failure;
     }
+   
+    result_t result = get_next_client(listen_sock);
+    if (result != result_success) {
+        printf("Client failure, error: ");
+        print_result_error(result);
+    }
     
-    sockaddr_in_t client_addr;
-    socket_t client_sock = accept(listen_sock, (sockaddr_t*) &client_addr, (socklen_t[]) { sizeof(client_addr) });
-    if (client_sock == -1) {
+    if (close(listen_sock) == -1) {
         return result_socket_failure;
     }
-
-    client_thread_arg_t client_thread_arg = { .socket = client_sock };
-
-    pthread_t client_thread;
-    pthread_create(&client_thread, NULL, client_thread_main, &client_thread_arg);
-
-    pthread_join(client_thread, NULL);
-    if (client_thread_arg.result != result_success) {
-        printf("Client thread failed\n");
-        print_result_error(client_thread_arg.result);
-    }
-
-    close(listen_sock);
 
     return result_success;
 }
