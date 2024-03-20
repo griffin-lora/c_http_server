@@ -7,14 +7,11 @@
 
 void handle_interrupt(int) {
     printf("Shutting down server\n");
-    if (server_active) {
-        server_active = false;
-        shutdown_server();
-    }
+    shutdown_server(); 
 }
 
 int main() {
-    //signal(SIGINT, handle_interrupt);
+    signal(SIGINT, handle_interrupt);
 
     srand((uint32_t) time(NULL));
     uint16_t port = (uint16_t)(3000 + rand() % 32);
