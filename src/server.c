@@ -10,6 +10,8 @@
 #include <pthread.h>
 #include <errno.h>
 
+atomic_bool server_active = false; 
+
 typedef int socket_t;
 typedef struct sockaddr sockaddr_t;
 typedef struct sockaddr_in sockaddr_in_t;
@@ -20,7 +22,7 @@ typedef struct timeval timeval_t;
 #define KEEP_ALIVE_TIMEOUT_SECONDS 5
 
 static result_t handle_client_socket(socket_t sock, char* request_msg_chars) {
-    for (;;) {
+    while (server_active) {
         ssize_t num_request_msg_chars = recv(sock, request_msg_chars, MAX_NUM_REQUEST_MSG_CHARS, 0);
         if (num_request_msg_chars == -1) {
             if (errno == EAGAIN) {
@@ -90,36 +92,60 @@ static void* client_thread_main(void* v_arg) {
     return NULL;
 }
 
-static result_t get_next_client(socket_t listen_sock) {
-    sockaddr_in_t client_addr;
-    socket_t client_sock = accept(listen_sock, (sockaddr_t*) &client_addr, (socklen_t[]) { sizeof(client_addr) });
-    if (client_sock == -1) {
-        return result_socket_failure;
-    }
+static result_t handle_listen_socket(socket_t listen_sock) {
+    server_active = true;
 
-    if (setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, (void*) &(timeval_t) {
-        .tv_sec = KEEP_ALIVE_TIMEOUT_SECONDS 
-    }, sizeof(timeval_t)) == -1) {
-        return result_socket_failure;
-    }
+    while (server_active) {
+        sockaddr_in_t client_addr;
+        socket_t client_sock = accept(listen_sock, (sockaddr_t*) &client_addr, (socklen_t[]) { sizeof(client_addr) });
+        if (client_sock == -1) {
+            return result_socket_failure;
+        }
 
-    client_thread_arg_t client_thread_arg = { .socket = client_sock };
-    
-    pthread_t client_thread;
-    printf("Starting new client thread\n");
-    if (pthread_create(&client_thread, NULL, client_thread_main, &client_thread_arg) != 0) {
-        return result_thread_failure;
-    }
+        if (setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, (void*) &(timeval_t) {
+            .tv_sec = KEEP_ALIVE_TIMEOUT_SECONDS 
+        }, sizeof(timeval_t)) == -1) {
+            return result_socket_failure;
+        }
 
-    if (pthread_join(client_thread, NULL) != 0) {
-        return result_thread_failure;
-    }
+        client_thread_arg_t client_thread_arg = { .socket = client_sock };
+        
+        pthread_t client_thread;
+        printf("Starting client thread\n");
+        if (pthread_create(&client_thread, NULL, client_thread_main, &client_thread_arg) != 0) {
+            return result_thread_failure;
+        }
 
-    if (client_thread_arg.result != result_success) {
-        return client_thread_arg.result;
+        if (pthread_join(client_thread, NULL) != 0) {
+            return result_thread_failure;
+        }
+
+        printf("Ending client thread (Thread 0x%lx)\n", client_thread);
+
+        if (client_thread_arg.result != result_success) {
+            printf("Client failure, error: ");
+            print_result_error(client_thread_arg.result);
+        }
     }
 
     return result_success;
+}
+
+typedef union {
+    socket_t socket;
+    result_t result;
+} listen_thread_arg_t;
+
+static void* listen_thread_main(void* v_arg) {
+    listen_thread_arg_t* arg = v_arg;
+    socket_t sock = arg->socket;
+
+    arg->result = handle_listen_socket(sock);
+
+    // Similar to before we do not care about error checking
+    close(sock);
+
+    return NULL;
 }
 
 result_t listen_for_clients(uint16_t port) {
@@ -140,17 +166,27 @@ result_t listen_for_clients(uint16_t port) {
         return result_socket_failure;
     }
 
-    for (;;) {
-        result_t result = get_next_client(listen_sock);
-        if (result != result_success) {
-            printf("Client failure, error: ");
-            print_result_error(result);
-        }
-    } 
+    listen_thread_arg_t listen_thread_arg = { .socket = listen_sock };
     
-    if (close(listen_sock) == -1) {
-        return result_socket_failure;
+    pthread_t listen_thread;
+    printf("Starting listen thread\n");
+    if (pthread_create(&listen_thread, NULL, listen_thread_main, &listen_thread_arg) != 0) {
+        return result_thread_failure;
+    }
+
+    if (pthread_join(listen_thread, NULL) != 0) {
+        return result_thread_failure;
+    }
+
+    printf("Ending listen thread\n");
+
+    if (listen_thread_arg.result != result_success) {
+        return listen_thread_arg.result;
     }
 
     return result_success;
+}
+
+void shutdown_server(void) {
+    
 }

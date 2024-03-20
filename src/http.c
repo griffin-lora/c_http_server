@@ -182,8 +182,6 @@ void create_http_response_message(const http_response_t* response, string_t* res
         FORMAT_BASE_ARGS_PREFIX \
         response->header.keep_alive_timeout_seconds, \
         FORMAT_BASE_ARGS_SUFFIX
-
-
     
     size_t num_response_msg_chars;
     switch (response->header.connection_type == http_connection_type_close) {
