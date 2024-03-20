@@ -80,7 +80,7 @@ static result_t handle_client_socket(socket_t sock, char* request_msg_chars) {
             return result_socket_failure;
         }
 
-        free(response_msg.chars);
+        free((char*)response_msg.chars);
 
         if (request.header.connection_type != http_connection_type_keep_alive) {
             break;
