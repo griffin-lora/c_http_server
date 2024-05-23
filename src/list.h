@@ -18,5 +18,5 @@ typedef struct {
     list_node_t* tail;
 } list_t;
 
-void push_node_to_list(list_t* list, size_t num_data_bytes, const void* data);
+void push_node_to_list(list_t* list, list_node_t* node);
 void remove_node_from_list(list_t* list, const list_node_t* node);

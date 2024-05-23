@@ -1,11 +1,7 @@
 #include "list.h"
-#include <stdlib.h>
 #include <string.h>
 
-void push_node_to_list(list_t* list, size_t num_data_bytes, const void* data) {
-    list_node_t* node = malloc(sizeof(*node) + num_data_bytes);
-    memcpy(node->data, data, num_data_bytes);
-
+void push_node_to_list(list_t* list, list_node_t* node) {
     if (list->head == NULL) {
         node->header = (list_node_header_t) {
             .prev = NULL,
@@ -23,7 +19,6 @@ void push_node_to_list(list_t* list, size_t num_data_bytes, const void* data) {
         .prev = list->tail,
         .next = NULL
     };
-    memcpy(node->data, data, num_data_bytes);
     
     list->tail->header.next = node;
 
@@ -42,6 +37,4 @@ void remove_node_from_list(list_t* list, const list_node_t* node) {
     } else {
         list->tail = node->header.prev;
     }
-
-    free((void*) node);
 }
