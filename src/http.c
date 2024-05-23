@@ -184,7 +184,7 @@ void create_http_response_message(const http_response_t* response, string_t* res
         FORMAT_BASE_ARGS_SUFFIX
     
     size_t num_response_msg_chars;
-    switch (response->header.connection_type == http_connection_type_close) {
+    switch (response->header.connection_type) {
         case http_connection_type_close:
             num_response_msg_chars = (size_t) snprintf(NULL, 0, CONNECTION_TYPE_CLOSE_FORMAT);
             break;
@@ -195,7 +195,7 @@ void create_http_response_message(const http_response_t* response, string_t* res
 
     char* response_msg_chars = malloc(num_response_msg_chars + 1);
     
-    switch (response->header.connection_type == http_connection_type_close) {
+    switch (response->header.connection_type) {
         case http_connection_type_close:
             sprintf(response_msg_chars, CONNECTION_TYPE_CLOSE_FORMAT);
             break;

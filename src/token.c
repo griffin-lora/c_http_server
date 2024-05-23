@@ -1,6 +1,4 @@
 #include "token.h"
-#include <stdio.h>
-#include <string.h>
 
 static size_t get_next_start_index(const lexer_info_t* info, size_t token_index) {
     size_t delim_index = 0;
