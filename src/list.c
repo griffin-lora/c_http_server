@@ -3,7 +3,7 @@
 
 void push_node_to_list(list_t* list, list_node_t* node) {
     if (list->head == NULL) {
-        node->header = (list_node_header_t) {
+        *node = (list_node_t) {
             .prev = NULL,
             .next = NULL
         };
@@ -15,26 +15,26 @@ void push_node_to_list(list_t* list, list_node_t* node) {
         return;
     }
 
-    node->header = (list_node_header_t) {
+    *node = (list_node_t) {
         .prev = list->tail,
         .next = NULL
     };
     
-    list->tail->header.next = node;
+    list->tail->next = node;
 
     list->tail = node;
 }
 
 void remove_node_from_list(list_t* list, const list_node_t* node) {
-    if (node->header.prev) {
-        node->header.prev->header.next = node->header.next;
+    if (node->prev) {
+        node->prev->next = node->next;
     } else {
-        list->head = node->header.next;
+        list->head = node->next;
     }
     
-    if (node->header.next) {
-        node->header.next->header.prev = node->header.prev;
+    if (node->next) {
+        node->next->prev = node->prev;
     } else {
-        list->tail = node->header.prev;
+        list->tail = node->prev;
     }
 }

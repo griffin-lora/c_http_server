@@ -3,14 +3,9 @@
 
 typedef struct list_node list_node_t;
 
-typedef struct {
+struct list_node {
     list_node_t* prev;
     list_node_t* next;
-} list_node_header_t;
-
-struct list_node {
-    list_node_header_t header;
-    uint8_t data[];
 };
 
 typedef struct {
