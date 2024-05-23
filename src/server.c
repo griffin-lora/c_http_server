@@ -18,7 +18,7 @@ typedef struct timeval timeval_t;
 
 #define NUM_CONNECTIONS 256
 #define MAX_NUM_REQUEST_MSG_CHARS 4096
-#define KEEP_ALIVE_TIMEOUT_SECONDS 5
+#define KEEP_ALIVE_TIMEOUT_SECONDS 30
 
 typedef struct {
     socket_t socket;
