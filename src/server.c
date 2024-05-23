@@ -164,7 +164,6 @@ static result_t handle_listen_socket(socket_t listen_sock) {
 
         client_thread_shutdown_info_node_t* node = malloc(sizeof(client_thread_shutdown_info_node_t));
         if (client_thread_shutdown_info_list_head == NULL) {
-            node = malloc(sizeof(client_thread_shutdown_info_node_t));
             client_thread_shutdown_info_list_head = node;
         }
         *node = (client_thread_shutdown_info_node_t) {
