@@ -1,5 +1,6 @@
 #include "server.h"
 #include "http.h"
+#include "result.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +51,10 @@ static result_t handle_client_socket(socket_t sock, char* request_msg_chars) {
             return result_socket_failure;
         }
 
+        if (!server_active) {
+            return result_success;
+        }
+
         string_t request_msg = {
             .chars = request_msg_chars,
             .num_chars = (size_t)num_request_msg_chars
@@ -98,14 +103,19 @@ typedef struct {
 static void* client_thread_main(void* v_arg) {
     printf("Starting client thread (Thread 0x%lx)\n", pthread_self());
 
-    client_thread_arg_t* arg = v_arg;
+    const client_thread_arg_t* arg = v_arg;
     socket_t sock = arg->socket;
     client_thread_shutdown_info_node_t* node = arg->node;
-    free(arg);
+    free((void*) arg);
 
     char* request_msg_chars = malloc(MAX_NUM_REQUEST_MSG_CHARS);
 
     result_t result = handle_client_socket(sock, request_msg_chars);
+
+    if (result != result_success) {
+        printf("Client failure, error: ");
+        print_result_error(result);
+    }
 
     free(request_msg_chars);
     
@@ -135,11 +145,6 @@ static void* client_thread_main(void* v_arg) {
         pthread_mutex_unlock(&client_thread_shutdown_info_list_mutex);
     }
 
-    if (result != result_success) {
-        printf("Client failure, error: ");
-        print_result_error(result);
-    }
-
     return NULL;
 }
 
@@ -151,6 +156,9 @@ static result_t handle_listen_socket(socket_t listen_sock) {
         sockaddr_in_t client_addr; 
         socket_t client_sock = accept(listen_sock, (sockaddr_t*) &client_addr, (socklen_t[]) { sizeof(client_addr) }); 
         if (client_sock == -1) {
+            if (!server_active) {
+                return result_success;
+            }
             return result_socket_failure;
         }
 
@@ -197,16 +205,18 @@ static result_t handle_listen_socket(socket_t listen_sock) {
 
 typedef union {
     socket_t socket;
-    result_t result;
 } listen_thread_arg_t;
 
 static void* listen_thread_main(void* v_arg) {
     printf("Starting listen thread\n");
 
-    listen_thread_arg_t* arg = v_arg;
+    const listen_thread_arg_t* arg = v_arg;
     socket_t sock = arg->socket;
 
-    arg->result = handle_listen_socket(sock);
+    result_t result = handle_listen_socket(sock);
+    if (result != result_success) {
+        print_result_error(result);
+    }
 
     // Similar to before we do not care about error checking
     close(sock);
@@ -243,10 +253,6 @@ result_t listen_for_clients(uint16_t port) {
 
     if (pthread_join(listen_thread, NULL) != 0) {
         return result_thread_failure;
-    } 
-
-    if (listen_thread_arg.result != result_success) {
-        return listen_thread_arg.result;
     }
 
     return result_success;
