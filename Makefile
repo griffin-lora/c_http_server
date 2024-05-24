@@ -1,11 +1,11 @@
 TARGET := app
 
 SOURCES := $(wildcard src/*.c)
-RESOURCES := $(wildcard resource/*.html)
+RESOURCES := $(wildcard resource/*.html) $(wildcard resource/*.css)
 LIBS := -lpthread
 OBJECTS := $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 DEPENDS := $(patsubst %.c,%.d,$(patsubst %.cpp,%.d,$(SOURCES)))
-RESOURCE_OBJECTS := $(patsubst %.html,%.o,$(RESOURCES))
+RESOURCE_OBJECTS := $(patsubst %.html,%.o,$(patsubst %.css,%.o,$(RESOURCES)))
 
 CFLAGS = -O2 -std=c2x -Wall -Wextra -Wpedantic -Wconversion -Wno-override-init -Wno-pointer-arith -Werror -Isrc -Ilib -g
 CXXFLAGS = -O2 -Isrc -Ilib
@@ -30,4 +30,7 @@ clean:
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 %.o: %.html Makefile
+	$(LD) -r -b binary $< -o $@
+
+%.o: %.css Makefile
 	$(LD) -r -b binary $< -o $@

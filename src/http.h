@@ -6,7 +6,8 @@
 
 typedef enum {
     http_content_type_text_plain,
-    http_content_type_text_html
+    http_content_type_text_html,
+    http_content_type_text_css
 } http_content_type_t;
 
 typedef enum {

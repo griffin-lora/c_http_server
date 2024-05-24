@@ -154,6 +154,7 @@ static const char* get_content_type_string(http_content_type_t type) {
     switch (type) {
         case http_content_type_text_plain: return "text/plain";
         case http_content_type_text_html: return "text/html";
+        case http_content_type_text_css: return "text/css";
         default: return NULL;
     }
 }

@@ -18,9 +18,30 @@ const string_t NAME##_content = { \
 
 MAKE_RESOURCE(not_found_html)
 MAKE_RESOURCE(index_html)
+MAKE_RESOURCE(main_css)
+
+bool get_resource_content(string_t resource_path, http_content_type_t* content_type, string_t* content) {
+    MAKE_RESOURCE_STRING(index_html)
+    MAKE_RESOURCE_STRING(main_css)
+
+    if (
+        string_equal(resource_path, MAKE_STRING("/")) ||
+        string_equal(resource_path, MAKE_STRING("/index.html"))
+    ) {
+        *content_type = http_content_type_text_html;
+        *content = index_html_content;
+        return true;
+    }
+    if (string_equal(resource_path, MAKE_STRING("/main.css"))) {
+        *content_type = http_content_type_text_css;
+        *content = main_css_content;
+        return true;
+    }
+
+    return false;
+}
 
 http_response_t get_response_for_request(const http_request_t* request) {
-    MAKE_RESOURCE_STRING(index_html)
     MAKE_RESOURCE_STRING(not_found_html)
 
     printf("Resource path requested (Thread 0x%lx): %.*s\n", pthread_self(), (int) request->resource_path.num_chars, request->resource_path.chars);
@@ -29,10 +50,8 @@ http_response_t get_response_for_request(const http_request_t* request) {
     string_t content;
     http_content_type_t content_type;
 
-    if (string_equal(request->resource_path, MAKE_STRING("/index.html"))) {
+    if (get_resource_content(request->resource_path, &content_type, &content)) {
         response_type = http_response_type_ok;
-        content = index_html_content;
-        content_type = http_content_type_text_html;
     } else {
         response_type = http_response_type_not_found;
         content = not_found_html_content;

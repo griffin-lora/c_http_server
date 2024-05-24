@@ -1,0 +1,35 @@
+
+body {
+    font-family: 'Noto Sans', sans-serif;
+}
+
+a {
+    color: #0000F0;
+    text-decoration: none;
+    -webkit-transition: color 0.125s;
+    transition: color 0.125s;
+}
+
+a:hover {
+    color: #8080FF;
+}
+a:active {
+    color: #000080;
+}
+
+.code {
+    font-family: monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    text-align: center;
+}
+
+h4 {
+    font-weight: normal;
+}
+
+.main {
+    width: 640px;
+    margin: auto;
+}
