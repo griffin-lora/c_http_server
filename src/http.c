@@ -145,6 +145,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 static const char* get_response_type_string(http_response_type_t type) {
     switch (type) {
         case http_response_type_ok: return "200 OK";
+        case http_response_type_not_found: return "404 Not Found";
         default: return NULL;
     }
 }

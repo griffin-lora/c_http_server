@@ -38,7 +38,8 @@ typedef struct {
 } http_response_header_t;
 
 typedef enum {
-    http_response_type_ok
+    http_response_type_ok,
+    http_response_type_not_found
 } http_response_type_t;
 
 typedef struct {
