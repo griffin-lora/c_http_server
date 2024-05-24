@@ -24,7 +24,7 @@ typedef enum {
 
 typedef struct {
     http_request_type_t type;
-    string_t path;
+    string_t resource_path;
     http_request_header_t header;
 } http_request_t;
 

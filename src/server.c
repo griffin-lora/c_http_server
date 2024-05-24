@@ -1,6 +1,7 @@
 #include "server.h"
 #include "http.h"
 #include "result.h"
+#include "route.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,7 +52,7 @@ static result_t handle_client_socket(socket_t sock, char* request_msg_chars) {
             return result_socket_failure;
         }
 
-        if (!server_active) {
+        if (num_request_msg_chars == 0 || !server_active) {
             return result_success;
         }
 
@@ -60,21 +61,13 @@ static result_t handle_client_socket(socket_t sock, char* request_msg_chars) {
             .num_chars = (size_t)num_request_msg_chars
         };
 
-        printf("Client request (Thread 0x%lx):\n%.*s\n", pthread_self(), (int) request_msg.num_chars, request_msg.chars); 
+        printf("Client request (Thread 0x%lx), (%ld):\n%.*s\n", pthread_self(), request_msg.num_chars, (int) request_msg.num_chars, request_msg.chars);
 
         http_request_t request;
         result_t result = parse_http_request_message(request_msg, &request);
         if (result != result_success) { return result; }
  
-        http_response_t response = {
-            .type = http_response_type_ok,
-            .content = MAKE_STRING("Hello world!"),
-            .header = {
-                .content_type = http_content_type_text_plain,
-                .connection_type = request.header.connection_type,
-                .keep_alive_timeout_seconds = KEEP_ALIVE_TIMEOUT_SECONDS
-            }
-        };
+        http_response_t response = get_response_for_request(&request);
 
         string_t response_msg;
         create_http_response_message(&response, &response_msg);

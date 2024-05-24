@@ -1,11 +1,24 @@
 #include "http.h"
+#include "result.h"
 #include "types.h"
 #include "token.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-static result_t parse_request_first_line(string_t line, http_request_type_t* type, string_t* path) {
+static result_t parse_request_resource_path(string_t request_resource_path, string_t* resource_path) {
+    lexer_info_t lexer_info = {
+        .str = request_resource_path,
+        .delim = "?"
+    };
+
+    lexer_t lexer = init_lexer(&lexer_info);
+    *resource_path = get_token(&lexer_info, &lexer);
+
+    return result_success;
+}
+
+static result_t parse_request_first_line(string_t line, http_request_type_t* type, string_t* resource_path) {
     lexer_info_t lexer_info = {
         .str = line,
         .delim = " "
@@ -29,9 +42,12 @@ static result_t parse_request_first_line(string_t line, http_request_type_t* typ
                     break;
                 }
                 break;
-            case 1:
-                *path = token;
-                break;
+            case 1: {
+                result_t result = parse_request_resource_path(token, resource_path);
+                if (result != result_success) {
+                    return result;
+                }
+            } break;
             case 2:
                 return string_equal(token, MAKE_STRING("HTTP/1.1")) ? result_success : result_invalid_first_line;
             default:
@@ -77,7 +93,7 @@ static result_t parse_header_line(string_t line, http_request_header_t* header) 
 
 result_t parse_http_request_message(string_t request_msg, http_request_t* request) {
     http_request_type_t type;
-    string_t path;
+    string_t resource_path;
 
     lexer_info_t lexer_info = {
         .str = request_msg,
@@ -95,7 +111,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
         if (i > 0) {
             continue;
         }
-        result_t result = parse_request_first_line(get_token(&lexer_info, &lexer), &type, &path);
+        result_t result = parse_request_first_line(get_token(&lexer_info, &lexer), &type, &resource_path);
         if (result != result_success) { return result; }
         header_lexer = next_lexer(&lexer_info, &lexer);
     }
@@ -119,7 +135,7 @@ result_t parse_http_request_message(string_t request_msg, http_request_t* reques
 
     *request = (http_request_t) {
         .type = type,
-        .path = path,
+        .resource_path = resource_path,
         .header = header
     };
 
@@ -183,7 +199,7 @@ void create_http_response_message(const http_response_t* response, string_t* res
         response->header.keep_alive_timeout_seconds, \
         FORMAT_BASE_ARGS_SUFFIX
     
-    size_t num_response_msg_chars;
+    size_t num_response_msg_chars = 0;
     switch (response->header.connection_type) {
         case http_connection_type_close:
             num_response_msg_chars = (size_t) snprintf(NULL, 0, CONNECTION_TYPE_CLOSE_FORMAT);
